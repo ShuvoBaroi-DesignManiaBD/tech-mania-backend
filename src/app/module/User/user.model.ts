@@ -1,55 +1,27 @@
-import bcrypt from "bcrypt";
-import { Schema, model } from "mongoose";
-import { TUser, UserModel } from "./user.interface";
-import config from "../../config";
+import mongoose, { Schema, model } from 'mongoose';
+import bcrypt from 'bcrypt';
+import config from '../../config';
+import { IUser, UserModel } from './user.interface';
+import { PaymentInfoSchema } from '../Payment/payment.model';
 
-export const addressSchema = new Schema({
-  street: { type: String, required: true, trim: true },
-  city: { type: String, required: true, trim: true },
-  state: { type: String, required: true, trim: true },
-  zipCode: { type: String, required: true, trim: true },
-}, { _id: false });
-
-export const userSchema = new Schema<TUser>({
-  photo: {
-    type: String,
-    trim: true,
+const userSchema = new Schema<IUser>(
+  {
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    phone: { type: String, unique: true },
+    password: { type: String, required: true },
+    profilePicture: { type: String },
+    verified: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false },
+    isBlocked: { type: Boolean, default: false },
+    role: { type: String, default: 'user' },
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    posts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+    paymentInfo: { type: PaymentInfoSchema, default: null },
   },
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-  },
-  phone: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  password: {
-    type: String,
-    required: true,
-    select: false,
-  },
-  address: {
-    type: addressSchema, required: true
-  },
-  role: {
-    type: String,
-    enum: ["customer", "admin"],
-    default: "customer",
-    required: false
-  },
-  isDeleted: {
-    type: Boolean,
-    default: false,
-  }
-}, {timestamps: true});
+  { timestamps: true },
+);
 
 // hashing password and save into DB by pre-hook middleware
 userSchema.pre('save', async function (next) {
@@ -64,33 +36,37 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-userSchema.post("save", function (doc, next) {
-  doc.password = "";
+userSchema.post('save', function (doc, next) {
+  doc.password = '';
   next();
 });
 
+// Instance method for checking if the user exists by email
 userSchema.statics.isUserExistsByEmail = async function (email: string) {
-  return await User.findOne({ email }).select("+password");
+  return await this.findOne({ email });
 };
 
+// Instance method for checking if the user exists by ID
 userSchema.statics.isUserExistsById = async function (id: string) {
-  return await User.findById(id).select("+password");
+  return await this.findById(id);
 };
 
+// Instance method for checking if passwords match
 userSchema.statics.isPasswordMatched = async function (
   plainTextPassword: string,
-  hashedPassword: string
-): Promise<boolean> {
+  hashedPassword: string,
+) {
   return await bcrypt.compare(plainTextPassword, hashedPassword);
 };
 
-userSchema.statics.isJWTIssuedBeforePasswordChanged = function (
+// Instance method for checking if JWT is issued before password change
+userSchema.methods.isJWTIssuedBeforePasswordChanged = function (
   passwordChangedTimestamp: Date,
-  jwtIssuedTimestamp: number
-): boolean {
-  const passwordChangedTime =
-    new Date(passwordChangedTimestamp).getTime() / 1000;
-  return passwordChangedTime > jwtIssuedTimestamp;
+  jwtIssuedTimestamp: number,
+) {
+  if (!passwordChangedTimestamp) return false;
+  const passwordChangedAt = new Date(passwordChangedTimestamp).getTime() / 1000;
+  return jwtIssuedTimestamp < passwordChangedAt;
 };
 
-export const User = model<TUser, UserModel>("User", userSchema);
+export const User = model<IUser, UserModel>('User', userSchema);

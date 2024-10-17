@@ -1,14 +1,35 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import mongoose from "mongoose";
-import { User } from "./user.model";
-import { TUpdateUser, TUser, TUserKeys } from "./user.interface";
-import DataNotFoundError from "../../errors/DataNotFoundError";
-import AppError from "../../errors/AppError";
-import httpStatus from "http-status";
-import { UserSearchableFields } from "./user.constant";
-import UsersQueryBuilder from "../../builder/UsersQueryBuilder";
+import mongoose from 'mongoose';
+import { User } from './user.model';
+import DataNotFoundError from '../../errors/DataNotFoundError';
+import AppError from '../../errors/AppError';
+import httpStatus from 'http-status';
+import { UserSearchableFields } from './user.constant';
+import UsersQueryBuilder from '../../builder/UsersQueryBuilder';
+import {
+  IUpdateProfile,
+  IUser,
+  TUserKeys,
+  TUserProfileKeys,
+} from './user.interface';
 
+const createUser = async (payload: IUser) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    // payload.role = 'user';
+    const createUser = await User.create(payload);
+    await session.commitTransaction();
+    await session.endSession();
+    return (createUser as any)?._doc;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw new Error(error);
+  }
+};
 
 const getAllUsers = async (query: Record<string, unknown>) => {
   console.log(query);
@@ -34,11 +55,10 @@ const getAllUsers = async (query: Record<string, unknown>) => {
   return { users: users, totalUsers: totalMatchingDocuments };
 };
 
-
 // ======================= Update operations =======================
-const updateAUser = async (id: string, payload: Partial<TUpdateUser>) => {
+const updateAUser = async (id: string, payload: Partial<IUser>) => {
   console.log(id, payload);
-  
+
   // Finding the user by ID
   const user = await User.findById(id);
 
@@ -70,23 +90,81 @@ const updateAUser = async (id: string, payload: Partial<TUpdateUser>) => {
   }
 
   // Perform the update with $set to modify only the specified fields
-  const result = await User.findByIdAndUpdate(id, { $set: updateQuery }, {
-    new: true,
-    runValidators: true,
-  });
+  const result = await User.findByIdAndUpdate(
+    id,
+    { $set: updateQuery },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
 
   if (!result) {
     throw new AppError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to update the user!'
+      'Failed to update the user!',
     );
   }
 
   return result;
 };
 
+const updateAUserProfile = async (id: string, payload: IUpdateProfile) => {
+  console.log(id, payload);
+
+  // Finding the user by ID
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw new DataNotFoundError();
+  }
+
+  // Check for invalid fields in the payload
+  for (const key of Object.keys(payload)) {
+    if (!TUserProfileKeys.includes(key)) {
+      throw new AppError(httpStatus.BAD_REQUEST, `Invalid field: ${key}`);
+    }
+  }
+
+  // Construct the update query with $set
+  const updateQuery: any = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === 'object' && value !== null) {
+      // Handle nested objects like 'address'
+      for (const [nestedKey, nestedValue] of Object.entries(value)) {
+        if (nestedValue !== undefined) {
+          updateQuery[`${key}.${nestedKey}`] = nestedValue;
+        }
+      }
+    } else if (value !== undefined) {
+      // Handle top-level fields
+      updateQuery[key] = value;
+    }
+  }
+
+  // Perform the update with $set to modify only the specified fields
+  const result = await User.findByIdAndUpdate(
+    id,
+    { $set: updateQuery },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!result) {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to update the user!',
+    );
+  }
+
+  return result;
+};
 
 export const UserServices = {
+  createUser,
   getAllUsers,
   updateAUser,
-}
+  updateAUserProfile,
+};

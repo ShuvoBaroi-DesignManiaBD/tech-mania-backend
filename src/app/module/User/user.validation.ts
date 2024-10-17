@@ -1,98 +1,75 @@
-import { z } from "zod";
+import { z } from 'zod';
+import { paymentInfoValidationSchema } from '../Payment/payment.validation';
 
-const addressSchema = z.object({
-  street: z.string().min(1, { message: "Street is required" }).trim(),
-  city: z.string().min(1, { message: "City is required" }).trim(),
-  state: z.string().min(1, { message: "State is required" }).trim(),
-  zipCode: z.string().min(1, { message: "Zip Code is required" }).trim()
-});
+// Zod schema for user role
+export const userRoleSchema = z.enum(['user', 'admin']);
 
-const updateAddressSchema = z.object({
-  street: z.string().min(1, { message: "Street is required" }).trim().optional(),
-  city: z.string().min(1, { message: "City is required" }).trim().optional(),
-  state: z.string().min(1, { message: "State is required" }).trim().optional(),
-  zipCode: z.string().min(1, { message: "Zip Code is required" }).trim().optional()
-});
+// Zod schema for creating/updating followers and following (list of user IDs)
+export const userIdArraySchema = z.array(z.string()).optional();
 
-const newUserValidation = z.object({
+// Zod schema for posts (list of post IDs)
+export const postIdArraySchema = z.array(z.string()).optional();
+
+// Zod schema for user creation
+export const newUserSchema = z.object({
   body: z.object({
-    name: z
-      .string({
-        invalid_type_error: "Name must be a string",
-      })
-      .min(1, { message: "Name is required" }),
-
-    email: z
-      .string({
-        invalid_type_error: "Invalid email address",
-      })
-      .email({ message: "Invalid email address" }),
-
-    password: z
-      .string({
-        invalid_type_error: "Password must be a string",
-      })
-      .min(8, { message: "Password must be at least 8 characters" })
-      .max(20, { message: "Password can not be more than 20 characters" }),
-
-    phone: z
-      .string({
-        invalid_type_error: "Phone number must be a string",
-      })
-      .min(10, { message: "Phone number must be at least 10 digits" })
-      .max(15, { message: "Phone number can not be more than 15 digits" }),
-
-    address: addressSchema
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().optional(),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    profilePicture: z.string().optional(),
+    verified: z.boolean().default(false),
+    isDeleted: z.boolean().default(false),
+    isBlocked: z.boolean().default(false),
+    role: z.literal('user').default('user'),
+    followers: userIdArraySchema,
+    following: userIdArraySchema,
+    posts: postIdArraySchema,
+    paymentInfo: paymentInfoValidationSchema.optional(),
   }),
 });
 
-const updateUserValidation = z.object({
-  body: z.object({
-    name: z
-      .string({
-        invalid_type_error: "Name must be a string",
-      })
-      .min(1, { message: "Name is required" })
-      .optional(), // Marked optional for update operation
-
-    email: z
-      .string({
-        invalid_type_error: "Invalid email address",
-      })
-      .email({ message: "Invalid email address" })
-      .optional(),
-
-    password: z
-      .string({
-        invalid_type_error: "Password must be a string",
-      })
-      .min(8, { message: "Password must be at least 8 characters" })
-      .max(20, { message: "Password can not be more than 20 characters" })
-      .optional(),
-
-    phone: z
-      .string({
-        invalid_type_error: "Phone number must be a string",
-      })
-      .min(10, { message: "Phone number must be at least 10 digits" })
-      .max(15, { message: "Phone number can not be more than 15 digits" })
-      .optional(),
-
-    address: updateAddressSchema.optional(), // Address schema made optional
-  }),
-});
-
-const userValidationSchema = z.object({
-  pasword: z
-    .string({
-      invalid_type_error: "Password must be string",
-    })
-    .max(20, { message: "Password can not be more than 20 characters" })
+// Zod schema for updating user profile
+export const updateUserSchema = z.object({
+  name: z.string().optional(),
+  email: z.string().email('Invalid email address').optional(),
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters')
     .optional(),
+  phone: z.string().optional(),
+  profilePicture: z.string().optional(),
+  verified: z.boolean().optional(),
+  isDeleted: z.boolean().optional(),
+  isBlocked: z.boolean().optional(),
+  role: userRoleSchema.optional(),
+  followers: userIdArraySchema.optional(),
+  following: userIdArraySchema.optional(),
+  posts: postIdArraySchema.optional(),
+  paymentInfo: paymentInfoValidationSchema.optional(),
+});
+
+// Zod schema for updating user profile
+export const updateUserProfileSchema = z.object({
+  name: z.string().optional(),
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters')
+    .optional(),
+  phone: z.string().optional(),
+  profilePicture: z.string().optional(),
+});
+
+// Zod schema for user login
+export const loginUserSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 export const UserValidation = {
-  userValidationSchema,
-  newUserValidation,
-  updateUserValidation,
+  userRoleSchema,
+  newUserSchema,
+  updateUserSchema,
+  updateUserProfileSchema,
+  loginUserSchema,
 };
