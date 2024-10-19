@@ -4,4 +4,4 @@ export const USER_ROLE = {
 } as const;
 
 
-export const UserSearchableFields = ['name', 'email', 'phone'];
+export const postSearchableFields = ['title', 'content', 'tags'];

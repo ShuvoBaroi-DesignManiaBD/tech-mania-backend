@@ -1,6 +1,6 @@
 import { FilterQuery, Query } from "mongoose";
 
-class OrdersQueryBuilder<T> {
+class PostsQueryBuilder<T> {
   public modelQuery: Query<T[], T>;
   public query?: Record<string, unknown>;
 
@@ -24,50 +24,65 @@ class OrdersQueryBuilder<T> {
     return this;
   }
 
-  filter() {
-    const queryObj = { ...this.query }; // copy
+  filter(isAdmin = false) {
+    const queryObj = { ...this.query }; // Copy the query object
     const excludeFields = [
       "searchTerm",
       "sort",
       "limit",
       "page",
       "fields",
-      "minPrice",
-      "maxPrice",
-      "categories",
+      "startDate",
+      "endDate",
+      "isBlocked",
+      "isDeleted"
     ];
     excludeFields.forEach((el) => delete queryObj[el]);
-
-    // Filtering by totalPrice range
-    if (this.query?.minPrice || this.query?.maxPrice) {
-      queryObj.totalPrice = {
-        ...(this.query.minPrice ? { $gte: Number(this.query.minPrice) } : {}),
-        ...(this.query.maxPrice ? { $lte: Number(this.query.maxPrice) } : {}),
+  
+    // Filtering by category
+    if (this.query?.category) {
+      queryObj.category = this.query.category;
+    }
+  
+    // Filtering by tags (assuming tags is an array in the schema)
+    if (this.query?.tags) {
+      queryObj.tags = { $in: this.query.tags };
+    }
+  
+    // Filtering by premium posts
+    if (this.query?.premium !== undefined) {
+      queryObj.premium = this.query.premium === "true";
+    }
+  
+    // Admin-only filters (isBlocked and isDeleted)
+    if (isAdmin) {
+      if (this.query?.isBlocked !== undefined) {
+        queryObj.isBlocked = this.query.isBlocked === "true";
+      }
+  
+      if (this.query?.isDeleted !== undefined) {
+        queryObj.isDeleted = this.query.isDeleted === "true";
+      }
+    }
+  
+    // Date range filtering by createdAt (startDate and endDate)
+    if ((this.query?.startDate && typeof this.query.startDate === 'string') && (this.query?.endDate && typeof this.query.endDate === 'string')) {
+      queryObj.createdAt = {
+        ...(this.query.startDate ? { $gte: new Date(this.query.startDate) } : {}),
+        ...(this.query.endDate ? { $lte: new Date(this.query.endDate) } : {}),
       };
     }
-
-    // Filtering by currency
-    if (this.query?.currency) {
-      queryObj.currency = this.query.currency;
+      
+  
+    // Filtering by authorId
+    if (this.query?.authorId) {
+      queryObj.authorId = this.query.authorId;
     }
-
-    // Filtering by status
-    if (this.query?.status) {
-      queryObj.status = this.query.status;
-    }
-
-    // Additional filters if needed (e.g., by userId, transactionId)
-    if (this.query?.userId) {
-      queryObj.userId = this.query.userId;
-    }
-
-    if (this.query?.transactionId) {
-      queryObj.transactionId = this.query.transactionId;
-    }
-
+  
     this.modelQuery = this.modelQuery.find(queryObj as FilterQuery<T>);
     return this;
   }
+  
 
   sort() {
     const sortQuery = this.query?.sort as string;
@@ -104,4 +119,4 @@ class OrdersQueryBuilder<T> {
   }
 }
 
-export default OrdersQueryBuilder;
+export default PostsQueryBuilder;

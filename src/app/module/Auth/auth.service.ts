@@ -22,7 +22,8 @@ const signIn = async (payload: TSignInData) => {
   const jwtPayload = {
     email: user.email,
     role: user.role || 'user',
-    id: user._id,
+    id: user?._id as string | undefined,
+    verified: user.verified || false,
   };
 
   const accessToken = createToken(
@@ -67,7 +68,8 @@ const refreshToken = async (token: string) => {
 
   const jwtPayload = {
     email: user.email,
-    role: user.role || 'customer',
+    role: user.role || 'user',
+    verified: user.verified || false,
   };
 
   const accessToken = createToken(

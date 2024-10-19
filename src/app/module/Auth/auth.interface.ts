@@ -5,6 +5,7 @@ export type TSignInData = {
 
 export type TJwtPayload = {
   email: string;
-  id?: string;
+  id?: string | undefined;
   role: string;
+  verified: boolean;
 };

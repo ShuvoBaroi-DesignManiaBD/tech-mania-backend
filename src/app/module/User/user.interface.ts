@@ -1,12 +1,11 @@
 /* eslint-disable no-unused-vars */
-import { Model } from 'mongoose';
+import { Document, Model } from 'mongoose';
 import { USER_ROLE } from './user.constant';
 import { TPaymentInfo } from '../Payment/payment.interface';
 
 export type TUserRole = 'user' | 'admin';
 
 export interface IUser extends Document {
-  _id?: string;
   name: string;
   email: string;
   phone?: string;

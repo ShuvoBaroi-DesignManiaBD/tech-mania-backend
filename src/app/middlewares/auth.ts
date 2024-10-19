@@ -28,7 +28,7 @@ const auth = (...requiredRoles: TUserRole[]) => {
         config.jwt_refresh_key
       );
       // console.log('refreshToken =>', decodedFromRefreshToken );
-      const { role, email } = decodedFromRefreshToken;
+      const { role, email, id, verified } = decodedFromRefreshToken;
       userRole = role;
       // checking if the user is exist
       user = await User.isUserExistsByEmail(email);
@@ -39,6 +39,8 @@ const auth = (...requiredRoles: TUserRole[]) => {
       JwtPayload = {
         role: role,
         email: email,
+        id: id,
+        verified: verified || false,
       };
     } else if (accessToken) {
       // console.log('line 47',refreshToken);

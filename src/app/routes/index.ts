@@ -1,17 +1,26 @@
 import { Router } from "express";
 import { authRoutes } from "../module/Auth/auth.route";
 import { userRoutes } from "../module/User/user.route";
+import { postRoutes } from "../module/Post/post.route";
 
 const router = Router();
 
 const moduleRoutes = [
   {
     path: "/auth",
-    route: authRoutes, //'here has to set the route module that has to import first'
+    route: authRoutes,
   },
   {
     path: "/users",
-    route: userRoutes, //'here has to set the route module that has to import first'
+    route: userRoutes, 
+  },
+  {
+    path: "/posts",
+    route: postRoutes, 
+  },
+  {
+    path: "/users",
+    route: userRoutes, 
   },
 ];
 
