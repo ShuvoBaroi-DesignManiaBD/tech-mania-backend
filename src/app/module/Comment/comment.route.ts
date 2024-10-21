@@ -1,38 +1,62 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import express, { NextFunction, Request, Response } from "express";
-import { UserControllers } from "./user.controller";
-import { UserValidation } from "./comment.validation";
-import auth from "../../middlewares/auth";
-import { USER_ROLE } from "./user.constant";
-import validateRequest from "../../middlewares/validateRequest";
+import express, { NextFunction, Request, Response } from 'express';
+import { commentValidation } from './comment.validation';
+import auth from '../../middlewares/auth';
+import validateRequest from '../../middlewares/validateRequest';
+import { CommentControllers } from './comment.controller';
+import { USER_ROLE } from '../User/user.constant';
 
 const router = express.Router();
 
-
 router.get(
-  '/all-users',
-  auth(USER_ROLE.ADMIN), 
-  UserControllers.getAllUsers, 
+  '/post/:id',
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  CommentControllers.getAllCommentsOfAPost,
 );
 
 router.post(
-  "/create-user",
-  validateRequest(UserValidation.newUserSchema),
-  UserControllers.createUser
+  '/create-comment',
+  validateRequest(commentValidation.commentCreationSchema),
+  CommentControllers.createComment,
+);
+
+router.get(
+  '/comment/:id',
+  auth(USER_ROLE?.ADMIN, USER_ROLE?.USER),
+  CommentControllers.getAComment,
 );
 
 router.patch(
-  "/update-user/:id",
-  auth(USER_ROLE?.ADMIN),
-  validateRequest(UserValidation.updateUserSchema),
-  UserControllers.updateAUser
+  '/comment/:id',
+  auth(USER_ROLE?.ADMIN, USER_ROLE?.USER),
+  validateRequest(commentValidation.updateCommentSchema),
+  CommentControllers.updateAComment,
 );
 
-router.patch(
-  "/update-user-profile/:id",
+router.get(
+  '/comment-replies/:id',
   auth(USER_ROLE?.USER, USER_ROLE?.ADMIN),
-  validateRequest(UserValidation.updateUserProfileSchema),
-  UserControllers.updateUserProfile
+  CommentControllers.getAllReplies,
 );
 
-export const userRoutes = router;
+router.post(
+  '/add-reply',
+  auth(USER_ROLE?.USER, USER_ROLE?.ADMIN),
+  CommentControllers.addReply,
+);
+
+router.patch(
+  '/update-reply/:id',
+  auth(USER_ROLE?.USER, USER_ROLE?.ADMIN),
+  validateRequest(commentValidation.updateCommentSchema),
+  CommentControllers.updateReply,
+);
+
+router.patch(
+  '/delete-reply/:id',
+  auth(USER_ROLE?.USER, USER_ROLE?.ADMIN),
+  validateRequest(commentValidation.updateCommentSchema),
+  CommentControllers.deleteReply,
+);
+
+export const commentRoutes = router;

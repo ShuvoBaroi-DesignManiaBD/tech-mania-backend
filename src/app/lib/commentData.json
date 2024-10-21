@@ -1,0 +1,206 @@
+[
+    {
+      "postId": "67152db6b40e7aa48d474582",
+      "author": "6710ab0ebbd3b5447791785b",
+      "content": "This is a great post on web development basics!",
+      "upvotes": ["67126dd0417e64652c1e5b9d"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152db6b40e7aa48d474582",
+      "author": "67126ebc417e64652c1e5ba1",
+      "content": "I learned a lot from this post, thanks!",
+      "upvotes": ["67126f80417e64652c1e5ba9"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d89b40e7aa48d47457f",
+      "author": "67126faa417e64652c1e5bab",
+      "content": "AI in software engineering is fascinating.",
+      "upvotes": ["6710ab0ebbd3b5447791785b", "6710bf9abcce8bd8723d0b76"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d89b40e7aa48d47457f",
+      "author": "6710c417bcce8bd8723d0b82",
+      "content": "Absolutely! AI has already started revolutionizing this field.",
+      "upvotes": ["67126ebc417e64652c1e5ba1"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d66b40e7aa48d47457c",
+      "author": "67126f80417e64652c1e5ba9",
+      "content": "What gadgets would you recommend for productivity?",
+      "upvotes": ["6710bf9abcce8bd8723d0b76"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": ["67152f89b40e7aa48d47458f"]
+    },
+    {
+      "postId": "67152d66b40e7aa48d47457c",
+      "author": "67126faa417e64652c1e5bab",
+      "parentCommentId": "67152f89b40e7aa48d47458f",
+      "content": "A good mechanical keyboard and noise-canceling headphones are essential!",
+      "upvotes": ["67126dd0417e64652c1e5b9d"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d4cb40e7aa48d474579",
+      "author": "67126dd0417e64652c1e5b9d",
+      "content": "This guide on AI-powered apps is super helpful.",
+      "upvotes": ["67126f80417e64652c1e5ba9"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d4cb40e7aa48d474579",
+      "author": "67126e3d417e64652c1e5b9f",
+      "content": "Does this work with Python-based apps?",
+      "upvotes": ["6710bf9abcce8bd8723d0b76"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": ["67152f9eb40e7aa48d474590"]
+    },
+    {
+      "postId": "67152d4cb40e7aa48d474579",
+      "author": "6710ab0ebbd3b5447791785b",
+      "parentCommentId": "67152f9eb40e7aa48d474590",
+      "content": "Yes, it's fully compatible with Python-based applications!",
+      "upvotes": ["67126dd0417e64652c1e5b9d"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d3ab40e7aa48d474576",
+      "author": "67126f69417e64652c1e5ba7",
+      "content": "Closures in JavaScript still confuse me.",
+      "upvotes": [],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": ["67152fb2b40e7aa48d474591"]
+    },
+    {
+      "postId": "67152d3ab40e7aa48d474576",
+      "author": "67126ebc417e64652c1e5ba1",
+      "parentCommentId": "67152fb2b40e7aa48d474591",
+      "content": "I struggled with them too, but once you understand scope, it clicks!",
+      "upvotes": ["6710bf9abcce8bd8723d0b76"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d1bb40e7aa48d474573",
+      "author": "67126f69417e64652c1e5ba7",
+      "content": "The future of mobile apps is really exciting!",
+      "upvotes": ["6710c417bcce8bd8723d0b82"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d1bb40e7aa48d474573",
+      "author": "67126faa417e64652c1e5bab",
+      "content": "Definitely! The possibilities are endless with AI integrations.",
+      "upvotes": ["67126ebc417e64652c1e5ba1"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d06b40e7aa48d474570",
+      "author": "6710ab0ebbd3b5447791785b",
+      "content": "AI in healthcare is truly revolutionary.",
+      "upvotes": ["67126dd0417e64652c1e5b9d"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152d06b40e7aa48d474570",
+      "author": "67126ebc417e64652c1e5ba1",
+      "content": "Imagine the breakthroughs in diagnosis with AI!",
+      "upvotes": ["6710bf9abcce8bd8723d0b76"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152cf0b40e7aa48d47456d",
+      "author": "6710bf9abcce8bd8723d0b76",
+      "content": "Great tips for software engineering best practices.",
+      "upvotes": ["67126f69417e64652c1e5ba7"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152cf0b40e7aa48d47456d",
+      "author": "67126f80417e64652c1e5ba9",
+      "content": "Thanks for sharing! Really useful.",
+      "upvotes": ["67126faa417e64652c1e5bab"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152c7cb40e7aa48d474569",
+      "author": "6710c417bcce8bd8723d0b82",
+      "content": "These AI tools for web development are game-changing!",
+      "upvotes": ["67126e3d417e64652c1e5b9f"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152c7cb40e7aa48d474569",
+      "author": "67126dd0417e64652c1e5b9d",
+      "content": "Totally agree. AI is pushing web development to new heights.",
+      "upvotes": ["67126ebc417e64652c1e5ba1"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    },
+    {
+      "postId": "67152b2fb40e7aa48d474562",
+      "author": "67126f80417e64652c1e5ba9",
+      "content": "This article on progressive web apps was super informative.",
+      "upvotes": ["67126faa417e64652c1e5bab"],
+      "downvotes": [],
+      "isBlocked": false,
+      "isDeleted": false,
+      "replies": []
+    }
+  ]
+  

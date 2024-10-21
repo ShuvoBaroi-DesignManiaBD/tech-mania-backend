@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongoose';
 import { IComment } from '../Comment/comment.interface';
+import { Document } from 'mongoose';
 
 // Categories for tech posts
 export type TPostCategory =
@@ -10,7 +11,7 @@ export type TPostCategory =
   | 'Apps';
 
 // Post structure
-export interface IPost {
+export interface IPost extends Document {
   // id: string;
   author: ObjectId;
   title: string;
@@ -20,11 +21,11 @@ export interface IPost {
   premium: boolean;
   images?: string[];
   video?: string;
-  upvotes: number;
-  downvotes: number;
+  upvotes: string[];
+  downvotes: string[];
   isDeleted: boolean;
   isBlocked: boolean;
-  comments: IComment[];
+  comments?: string[];
 }
 
 // Post creation interface

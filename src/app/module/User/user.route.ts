@@ -15,6 +15,12 @@ router.get(
   UserControllers.getAllUsers, 
 );
 
+router.get(
+  '/:id',
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER), 
+  UserControllers.getAUser, 
+);
+
 router.post(
   "/create-user",
   validateRequest(UserValidation.newUserSchema),

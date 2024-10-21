@@ -1,14 +1,28 @@
-import { Document, ObjectId } from "mongoose";
+import { Document, ObjectId } from 'mongoose';
 
 // Comment structure
 export interface IComment extends Document {
   postId: ObjectId;
-  authorId: ObjectId;
+  author: ObjectId;
   parentCommentId?: ObjectId;
   content: string;
-  upvotes: number;
-  downvotes: number;
-  replies?: Comment[]; // Nested replies
+  upvotes: string[];
+  downvotes: string[];
+  isDeleted?: boolean;
+  isBlocked?: boolean;
+  replies?: string[]; // Nested replies
+}
+
+export interface IReply extends Document {
+  postId: ObjectId;
+  author: ObjectId;
+  parentCommentId: ObjectId;
+  content: string;
+  upvotes: string[];
+  downvotes: string[];
+  isDeleted?: boolean;
+  isBlocked?: boolean;
+  replies?: string[]; // Nested replies
 }
 
 // Comment creation
@@ -17,7 +31,20 @@ export interface IComment extends Document {
 //   content: string;
 // }
 
-// // Comment update
-// export interface UpdateComment {
-//   content: string;
-// }
+// Comment update
+export interface IUpdateComment {
+  content: string;
+  upvotes: string[];
+  downvotes: string[];
+  isBlocked?: boolean;
+  isDeleted?: boolean;
+  replies?: string[];
+}
+
+export const TCommentUpdateKeysForUser: string[] = [
+  'content',
+  'upvotes',
+  'downvotes',
+  'isDeleted',
+  'replies',
+];

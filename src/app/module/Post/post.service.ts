@@ -17,7 +17,7 @@ const createPost = async (payload: IPost) => {
 
     await session.commitTransaction();
     await session.endSession();
-    return createPost[0]?._doc; // Return the created post document
+    return (createPost[0] as any)?._doc; // Return the created post document
   } catch (error: any) {
     await session.abortTransaction();
     await session.endSession();
@@ -28,6 +28,7 @@ const createPost = async (payload: IPost) => {
 const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
   // Create the query using the query builder for filtering, sorting, etc.
   let postQuery;
+  let totalMatchingDocuments;
   if (req?.user?.role === 'admin') {
     postQuery = new PostsQueryBuilder(
       Post.find().populate('author', 'name email profilePicture verified'),
@@ -37,6 +38,8 @@ const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
       .filter()
       .sort()
       .fields();
+    
+    totalMatchingDocuments = await Post.countDocuments();
   } else {
     postQuery = new PostsQueryBuilder(
       Post.find({ isDeleted: false, isBlocked: false, premium: false }).populate(
@@ -49,10 +52,9 @@ const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
       .filter()
       .sort()
       .fields();
+    
+    totalMatchingDocuments = await Post.countDocuments({ isDeleted: false, isBlocked: false, premium: false });
   }
-
-  const countQuery = postQuery.modelQuery.clone();
-  const totalMatchingDocuments = await countQuery.countDocuments().exec();
 
   postQuery.paginate();
   const posts = await postQuery.modelQuery.exec();
@@ -63,6 +65,18 @@ const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
 
   return { posts, totalPosts: totalMatchingDocuments };
 };
+
+// const getCommentsOfAPost = async (req: Request, id: Record<string, unknown>) => {
+//   const post = await Post.findById(id);
+
+//   if (!post || post?.isDeleted || post?.isBlocked) {
+//     throw new DataNotFoundError();
+//   }
+
+//   const comments = await Post.findById(id).select('comments').populate('comments');
+
+//   return { posts, totalPosts: totalMatchingDocuments };
+// };
 
 const getPremiumPosts = async (req: Request, query: Record<string, unknown>) => {
   // Create the query using the query builder for filtering, sorting, etc.
@@ -190,6 +204,70 @@ const updateAPostContent = async (
   return updatedPost;
 };
 
+const addOrRemoveUpvote = async (req: Request, id: string) => {
+  const userId = req?.user?._id;
+  const post = await Post.findById(id);
+
+  if (!post) {
+    throw new DataNotFoundError();
+  }
+
+  let result;
+  if (post?.upvotes?.includes(userId)) {
+    // Remove the upvote (pull the userId from the upvotes array)
+    result = await Post.findByIdAndUpdate(
+      id,
+      { $pull: { upvotes: userId } },
+      { new: true, runValidators: true }
+    );
+  } else {
+    // Add the upvote (push the userId to the upvotes array)
+    result = await Post.findByIdAndUpdate(
+      id,
+      {
+        $push: { upvotes: userId },
+        $pull: { downvotes: userId }, // Optionally remove downvote if exists
+      },
+      { new: true, runValidators: true }
+    );
+  }
+
+  return result;
+};
+
+
+const addOrRemoveDownvote = async (req: Request, id: string) => {
+  const userId = req?.user?._id;
+  const post = await Post.findById(id);
+
+  if (!post) {
+    throw new DataNotFoundError();
+  }
+
+  let result;
+  if (post?.downvotes?.includes(userId)) {
+    // Remove the downvote (pull the userId from the downvotes array)
+    result = await Post.findByIdAndUpdate(
+      id,
+      { $pull: { downvotes: userId } },
+      { new: true, runValidators: true }
+    );
+  } else {
+    // Add the downvote (push the userId to the downvotes array)
+    result = await Post.findByIdAndUpdate(
+      id,
+      {
+        $push: { downvotes: userId },
+        $pull: { upvotes: userId }, // Optionally remove upvote if exists
+      },
+      { new: true, runValidators: true }
+    );
+  }
+
+  return result;
+};
+
+
 // Helper function to construct the update query
 const buildUpdateQuery = (payload: Partial<IPost>) => {
   const updateQuery: any = {};
@@ -213,4 +291,6 @@ export const PostServices = {
   getPremiumPosts,
   updateAPost,
   updateAPostContent,
+  addOrRemoveUpvote,
+  addOrRemoveDownvote
 };

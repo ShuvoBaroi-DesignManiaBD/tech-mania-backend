@@ -13,6 +13,7 @@ import {
   TUserKeys,
   TUserProfileKeys,
 } from './user.interface';
+import { Request } from 'express';
 
 const createUser = async (payload: IUser) => {
   const session = await mongoose.startSession();
@@ -29,6 +30,25 @@ const createUser = async (payload: IUser) => {
     await session.endSession();
     throw new Error(error);
   }
+};
+
+const getAUser = async (req:Request, id: string) => {
+
+  let user = await User.findById(id);
+
+  console.log(user);
+  
+  if (!user || user.isDeleted) {
+    throw new DataNotFoundError();
+  }
+
+  if (user.isBlocked) {
+    throw new AppError(httpStatus.FORBIDDEN, 'This user account is blocked !');
+  }
+
+  if(req?.user?.role === 'admin') return user;
+  
+  return user = await User.findById(id).select('name email role posts following followers verified profilePicture');
 };
 
 const getAllUsers = async (query: Record<string, unknown>) => {
@@ -164,6 +184,7 @@ const updateAUserProfile = async (id: string, payload: IUpdateProfile) => {
 
 export const UserServices = {
   createUser,
+  getAUser,
   getAllUsers,
   updateAUser,
   updateAUserProfile,
