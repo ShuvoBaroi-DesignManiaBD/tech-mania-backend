@@ -7,6 +7,7 @@ export type TUserRole = 'user' | 'admin';
 
 export interface IUser extends Document {
   name: string;
+  username: string;
   email: string;
   phone?: string;
   password: string;

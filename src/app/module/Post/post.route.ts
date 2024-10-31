@@ -14,6 +14,19 @@ router.get(
   auth(USER_ROLE.ADMIN, USER_ROLE.USER),
   PostControllers.getAllPosts,
 );
+
+router.get(
+  '/post-interactions/:id',
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  PostControllers.getAPostInteractions,
+);
+
+router.get(
+  '/user-posts/:id',
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  PostControllers.getALlPostsOfAUser,
+);
+
 router.get(
   '/premium-posts',
   auth(USER_ROLE.ADMIN, USER_ROLE.USER),

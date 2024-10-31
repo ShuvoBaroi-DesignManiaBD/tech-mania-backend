@@ -30,6 +30,29 @@ const getAllPosts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAPostInteractions = catchAsync(async (req: Request, res: Response) => {
+  const data = await PostServices.getAPostInterations(req?.params.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Upvotes, downvotes & comments calculatd successfully of the post',
+    data: data,
+  });
+});
+
+const getALlPostsOfAUser = catchAsync(async (req: Request, res: Response) => {
+  const { posts, totalPosts } = await PostServices.userPosts(req, req?.params.id, req?.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'All posts of the user retrieved successfully',
+    totalPosts: totalPosts,
+    data: posts,
+  });
+});
+
 const getPremiumPosts = catchAsync(async (req: Request, res: Response) => {
   const { posts, totalPosts } = await PostServices.getPremiumPosts(
     req,
@@ -102,6 +125,8 @@ const updateAPostContent = catchAsync(async (req: Request, res: Response) => {
 export const PostControllers = {
   createPost,
   getAllPosts,
+  getAPostInteractions,
+  getALlPostsOfAUser,
   getPremiumPosts,
   updateAPost,
   updateAPostContent,

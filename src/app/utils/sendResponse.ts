@@ -15,6 +15,7 @@ type TResponse<T> = {
   totalPosts?: number;
   totalUsers?: number;
   totalComments?: number;
+  totalVotes?: number;
   data: T;
   token?: string;
 };
@@ -27,6 +28,7 @@ const sendResponse = <T>(res: Response, data: TResponse<T>) => {
     totalPosts: data.totalPosts,
     totalUsers: data.totalUsers,
     totalComments: data.totalComments,
+    totalVotes: data.totalVotes,
     data: data.data,
     token: data.token,
   });

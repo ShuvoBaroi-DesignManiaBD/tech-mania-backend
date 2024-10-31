@@ -16,6 +16,12 @@ router.get(
 );
 
 router.get(
+  '/user-profile/:id',
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER), 
+  UserControllers.getAUser, 
+);
+
+router.get(
   '/:id',
   auth(USER_ROLE.ADMIN, USER_ROLE.USER), 
   UserControllers.getAUser, 

@@ -25,17 +25,18 @@ const signIn = catchAsync(async (req, res) => {
   // eslint-disable-next-line no-unsafe-optional-chaining
   const {password, ...resultExcludingpassword} = result.user;
   const { refreshToken, accessToken } = result;
+  const isProduction = config.node_env === 'production';
 
   res.cookie('refreshToken', refreshToken, {
-    secure: config.node_env === 'production',
+    secure: isProduction,
     httpOnly: true,
-    sameSite: 'none'
+    sameSite: isProduction ? 'none' :  'lax'
   });
 
   res.cookie('accessToken', accessToken, {
-    secure: config.node_env === 'production',
+    secure: isProduction,
     httpOnly: true,
-    sameSite: 'none'
+    sameSite: isProduction ? 'none' :  'lax'
   });
 
   sendResponse(res, {

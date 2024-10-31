@@ -16,6 +16,8 @@ import PostsQueryBuilder from '../../builder/PostsQueryBuilder';
 import { Request } from 'express';
 import QueryBuilder from '../../builder/QueryBuilder';
 import CommentsQueryBuilder from '../../builder/CommentsQueryBuilder';
+import { VOTE_TYPE } from '../Vote/vote.constant';
+import { Vote } from '../Vote/vote.model';
 
 const createComment = async (payload: IComment) => {
   const session = await mongoose.startSession();
@@ -35,28 +37,49 @@ const createComment = async (payload: IComment) => {
 };
 
 
-const getAllCommentsOfAPost = async (req:Request,postId: string, query: Record<string, unknown>) => {
+const getAllCommentsOfAPost = async (req: Request, postId: string, query: Record<string, unknown>) => {
   console.log(postId);
   
   // Add postId to the query object
   const extendedQuery = { ...query, postId };
-  // const comments = await Comment.find({postId: postId})
-  const commentQuery = new CommentsQueryBuilder(Comment.find({postId: postId}).populate('author', '_id name email profilePicture verified'), query)
-    .search(['content'])             // Apply search to the 'content' field
-    .filter()                        // Apply any filters passed in the query
-    .sort()                          // Apply sorting
-    .fields()                        // Select only specific fields
-    .paginate();                     // Apply pagination
+  
+  // Build query for fetching comments with any filters, sorting, fields, and pagination applied
+  const commentQuery = new CommentsQueryBuilder(
+    Comment.find({ postId }).populate('author', '_id name email profilePicture verified'),
+    query
+  )
+    .search(['content'])      // Apply search to 'content' field
+    .filter()                 // Apply filters
+    .sort()                   // Apply sorting
+    .fields()                 // Select specific fields
+    .paginate();              // Apply pagination
 
+  // Execute the query to get comments
   const comments = await commentQuery.modelQuery.exec();
 
-  console.log(postId, commentQuery, comments);
-  
   if (!comments || comments.length < 1) {
     throw new DataNotFoundError();
   }
 
-  return comments;
+  // For each comment, retrieve counts for upvotes, downvotes, and replies
+  const commentsWithCounts = await Promise.all(
+    comments.map(async (comment) => {
+      const [upvoteCount, downvoteCount, repliesCount] = await Promise.all([
+        Vote.countDocuments({ parentId: comment._id, type: VOTE_TYPE.UPVOTE, parentType: "Comment" }),
+        Vote.countDocuments({ parentId: comment._id, type: VOTE_TYPE.DOWNVOTE, parentType: "Comment" }),
+        Comment.countDocuments({ parentCommentId: comment._id }) // Count replies
+      ]);
+
+      return {
+        ...comment.toObject(),
+        upvoteCount,
+        downvoteCount,
+        repliesCount
+      };
+    })
+  );
+
+  return commentsWithCounts;
 };
 
 
@@ -173,16 +196,31 @@ const deleteAComment = async (
 
 
 // ======================= Reply services =======================
-
 const getAllReplies = async (id: string) => {
-  const comment = await Comment.findById(id);
-  if (!comment) {
+  const replies = await Comment.find({parentCommentId: id}).populate('replies author', '_id name email profilePicture verified');
+  if (!replies) {
     throw new DataNotFoundError();
   }
-  const replies = await comment.populate('replies');
-  // Create the query builder
 
-  return replies;
+  // For each comment, retrieve counts for upvotes, downvotes, and replies
+  const repliesWithCounts = await Promise.all(
+    replies.map(async (reply) => {
+      const [upvoteCount, downvoteCount] = await Promise.all([
+        Vote.countDocuments({ parentId: reply._id, type: VOTE_TYPE.UPVOTE, parentType: "Comment" }),
+        Vote.countDocuments({ parentId: reply._id, type: VOTE_TYPE.DOWNVOTE, parentType: "Comment" }),
+        // Comment.countDocuments({ parentCommentId: reply._id }) // Count replies
+      ]);
+
+      return {
+        ...reply.toObject(),
+        upvoteCount,
+        downvoteCount,
+        // repliesCount
+      };
+    })
+  );
+
+  return repliesWithCounts;
 };
 
 const addReply = async (payload: IReply) => {

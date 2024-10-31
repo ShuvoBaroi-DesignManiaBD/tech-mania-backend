@@ -6,8 +6,8 @@ export interface IComment extends Document {
   author: ObjectId;
   parentCommentId?: ObjectId;
   content: string;
-  upvotes: string[];
-  downvotes: string[];
+  // upvotes: string[];
+  // downvotes: string[];
   isDeleted?: boolean;
   isBlocked?: boolean;
   replies?: string[]; // Nested replies
@@ -18,11 +18,11 @@ export interface IReply extends Document {
   author: ObjectId;
   parentCommentId: ObjectId;
   content: string;
-  upvotes: string[];
-  downvotes: string[];
+  // upvotes: string[];
+  // downvotes: string[];
   isDeleted?: boolean;
   isBlocked?: boolean;
-  replies?: string[]; // Nested replies
+  // replies?: string[]; // Nested replies
 }
 
 // Comment creation

@@ -14,6 +14,7 @@ import {
   TUserProfileKeys,
 } from './user.interface';
 import { Request } from 'express';
+import { Post } from '../Post/post.model';
 
 const createUser = async (payload: IUser) => {
   const session = await mongoose.startSession();
@@ -35,6 +36,7 @@ const createUser = async (payload: IUser) => {
 const getAUser = async (req:Request, id: string) => {
 
   let user = await User.findById(id);
+  let postsByUser = await Post.countDocuments({author: id});
 
   console.log(user);
   
@@ -46,9 +48,12 @@ const getAUser = async (req:Request, id: string) => {
     throw new AppError(httpStatus.FORBIDDEN, 'This user account is blocked !');
   }
 
-  if(req?.user?.role === 'admin') return user;
+  const resultForAdmin = {...user, numberOfPosts:postsByUser};
+  if(req?.user?.role === 'admin') return resultForAdmin;
   
-  return user = await User.findById(id).select('name email role posts following followers verified profilePicture');
+  user = await User.findById(id).select('name email role following followers verified profilePicture');
+  const resultForUser = {...(user as any)?._doc, numberOfPosts:postsByUser};
+  return resultForUser;
 };
 
 const getAllUsers = async (query: Record<string, unknown>) => {

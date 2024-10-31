@@ -7,6 +7,7 @@ import { PaymentInfoSchema } from '../Payment/payment.model';
 const userSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
+    username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String, unique: true },
     password: { type: String, required: true },

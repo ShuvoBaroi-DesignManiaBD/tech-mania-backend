@@ -1,9 +1,10 @@
-import { Document, ObjectId } from "mongoose";
+import { Document, ObjectId } from 'mongoose';
 
-export type TVote = 'upvote' | 'downvote';
-export interface Vote extends Document {
-    userId: string;
-    postId?: ObjectId;
-    commentId?: ObjectId;
-    type: TVote;
-  }
+export type TVoteType = 'upvote' | 'downvote';
+export interface TVote extends Document {
+  userId: ObjectId;
+  parentId: ObjectId;
+  isDeleted?: boolean;
+  parentType: string;
+  type: TVoteType;
+}

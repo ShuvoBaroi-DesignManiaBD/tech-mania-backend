@@ -7,6 +7,9 @@ import { IPost, TPostKeys, TPostUpdateKeys } from './post.interface';
 import PostsQueryBuilder from '../../builder/PostsQueryBuilder';
 import { postSearchableFields } from './post.constant';
 import { Request } from 'express';
+import { Vote } from '../Vote/vote.model';
+import { VOTE_TYPE } from '../Vote/vote.constant';
+import { Comment } from '../Comment/comment.model';
 
 const createPost = async (payload: IPost) => {
   const session = await mongoose.startSession();
@@ -25,43 +28,205 @@ const createPost = async (payload: IPost) => {
   }
 };
 
+// const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
+//   // Create the query using the query builder for filtering, sorting, etc.
+//   let postQuery;
+//   let totalMatchingDocuments;
+//   if (req?.user?.role === 'admin') {
+//     postQuery = new PostsQueryBuilder(
+//       Post.find().populate('author', 'name email profilePicture verified'),
+//       query,
+//     )
+//       .search(postSearchableFields)
+//       .filter()
+//       .sort()
+//       .fields();
+
+//     totalMatchingDocuments = await Post.countDocuments();
+//   } else {
+//     postQuery = new PostsQueryBuilder(
+//       Post.find({
+//         isDeleted: false,
+//         isBlocked: false,
+//         premium: false,
+//       }).populate('author', 'name email profilePicture verified'),
+//       query,
+//     )
+//       .search(postSearchableFields)
+//       .filter()
+//       .sort()
+//       .fields();
+
+//     totalMatchingDocuments = await Post.countDocuments({
+//       isDeleted: false,
+//       isBlocked: false,
+//       premium: false,
+//     });
+//   }
+
+//   postQuery.paginate();
+//   const posts = await postQuery.modelQuery.exec();
+
+//   if (!posts || posts.length < 1) {
+//     throw new DataNotFoundError();
+//   }
+
+//   return { posts, totalPosts: totalMatchingDocuments };
+// };
+
 const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
-  // Create the query using the query builder for filtering, sorting, etc.
-  let postQuery;
-  let totalMatchingDocuments;
-  if (req?.user?.role === 'admin') {
-    postQuery = new PostsQueryBuilder(
-      Post.find().populate('author', 'name email profilePicture verified'),
-      query,
-    )
-      .search(postSearchableFields)
-      .filter()
-      .sort()
-      .fields();
-    
-    totalMatchingDocuments = await Post.countDocuments();
-  } else {
-    postQuery = new PostsQueryBuilder(
-      Post.find({ isDeleted: false, isBlocked: false, premium: false }).populate(
-        'author',
-        'name email profilePicture verified',
-      ),
-      query,
-    )
-      .search(postSearchableFields)
-      .filter()
-      .sort()
-      .fields();
-    
-    totalMatchingDocuments = await Post.countDocuments({ isDeleted: false, isBlocked: false, premium: false });
+  let matchCondition = {};
+  if (req?.user?.role !== 'admin') {
+    matchCondition = {
+      isDeleted: false,
+      isBlocked: false,
+      premium: false,
+    };
   }
 
-  postQuery.paginate();
-  const posts = await postQuery.modelQuery.exec();
+  // Create the aggregation pipeline
+  const pipeline = [
+    { $match: matchCondition },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'author',
+        foreignField: '_id',
+        as: 'author',
+      },
+    },
+    { $unwind: '$author' },
+    {
+      $lookup: {
+        from: 'votes',
+        let: { postId: '$_id' },
+        pipeline: [
+          { $match: { $expr: { $eq: ['$parentId', '$$postId'] } } },
+          {
+            $group: {
+              _id: '$type',
+              count: { $sum: 1 },
+            },
+          },
+        ],
+        as: 'votes',
+      },
+    },
+    {
+      $addFields: {
+        numberOfUpvotes: {
+          $ifNull: [
+            {
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: '$votes',
+                    as: 'vote',
+                    cond: { $eq: ['$$vote._id', 'upvote'] },
+                  },
+                },
+                0,
+              ],
+            },
+            { count: 0 },
+          ],
+        },
+        numberOfDownvotes: {
+          $ifNull: [
+            {
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: '$votes',
+                    as: 'vote',
+                    cond: { $eq: ['$$vote._id', 'downvote'] },
+                  },
+                },
+                0,
+              ],
+            },
+            { count: 0 },
+          ],
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: 'comments',
+        localField: '_id',
+        foreignField: 'post',
+        as: 'comments',
+      },
+    },
+    {
+      $addFields: {
+        numberOfComments: { $size: '$comments' },
+      },
+    },
+    {
+      $project: {
+        votes: 0,
+        comments: 0,
+      },
+    },
+  ];
+
+  const postsQuery = Post.aggregate(pipeline);
+  const totalMatchingDocuments = await Post.countDocuments(matchCondition);
+  if (query) {
+    const filteredData = new PostsQueryBuilder(
+      postsQuery,
+      query,
+    )
+      .search(postSearchableFields)
+      .filter()
+      .sort()
+      .fields()
+      .paginate();
+    const posts = await filteredData.modelQuery.exec();
+
+    if (!posts || posts.length < 1) {
+      throw new DataNotFoundError();
+    }
+    const totalMatchingDocuments = posts.length;
+    return { posts, totalPosts: totalMatchingDocuments };
+  }
+
+  const posts = await postsQuery.exec();
 
   if (!posts || posts.length < 1) {
     throw new DataNotFoundError();
   }
+
+  return { posts, totalPosts: totalMatchingDocuments };
+};
+
+const userPosts = async (
+  req: Request,
+  userId: string,
+  query: Record<string, unknown>,
+) => {
+  // Create the query using the query builder for filtering, sorting, etc.
+  let postQuery;
+  let totalMatchingDocuments;
+  postQuery = new PostsQueryBuilder(
+    Post.find({ author: userId, isDeleted: false }),
+    query,
+  )
+    .search(postSearchableFields)
+    .filter()
+    .sort()
+    .fields();
+  const posts = await postQuery.modelQuery.exec();
+  if (!posts || posts.length < 1) {
+    throw new DataNotFoundError();
+  }
+  totalMatchingDocuments = await Post.countDocuments({
+    isDeleted: false,
+    author: userId,
+  });
+
+  postQuery.paginate();
 
   return { posts, totalPosts: totalMatchingDocuments };
 };
@@ -78,12 +243,18 @@ const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
 //   return { posts, totalPosts: totalMatchingDocuments };
 // };
 
-const getPremiumPosts = async (req: Request, query: Record<string, unknown>) => {
+const getPremiumPosts = async (
+  req: Request,
+  query: Record<string, unknown>,
+) => {
   // Create the query using the query builder for filtering, sorting, etc.
   let postQuery;
   if (req?.user?.role === 'admin' || req?.user?.verified === true) {
     postQuery = new PostsQueryBuilder(
-      Post.find({ premium: true }).populate('author', 'name email profilePicture verified'),
+      Post.find({ premium: true }).populate(
+        'author',
+        'name email profilePicture verified',
+      ),
       query,
     )
       .search(postSearchableFields)
@@ -91,10 +262,7 @@ const getPremiumPosts = async (req: Request, query: Record<string, unknown>) => 
       .sort()
       .fields();
   } else {
-    throw new AppError(
-      httpStatus.UNAUTHORIZED,
-      'You are not a verified user!',
-    )
+    throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a verified user!');
   }
 
   const countQuery = postQuery.modelQuery.clone();
@@ -143,6 +311,27 @@ const updateAPost = async (id: string, payload: Partial<IPost>) => {
   }
 
   return updatedPost;
+};
+
+const getAPostInterations = async (id: string) => {
+  const post = await Post.findById(id);
+  if (!post) {
+    throw new DataNotFoundError();
+  }
+
+  const [upvotes, downvotes, comments] = await Promise.all([
+    Vote.countDocuments({ parentId: id, type: VOTE_TYPE.UPVOTE }),
+    Vote.countDocuments({ parentId: id, type: VOTE_TYPE.DOWNVOTE }),
+    Comment.countDocuments({
+      postId: id,
+      isDeleted: false,
+      isBlocked: false,
+      parentCommentId: null,
+    }),
+  ]);
+
+  const data = { upvotes, downvotes, comments };
+  return data;
 };
 
 const updateAPostContent = async (
@@ -218,7 +407,7 @@ const addOrRemoveUpvote = async (req: Request, id: string) => {
     result = await Post.findByIdAndUpdate(
       id,
       { $pull: { upvotes: userId } },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
   } else {
     // Add the upvote (push the userId to the upvotes array)
@@ -228,13 +417,12 @@ const addOrRemoveUpvote = async (req: Request, id: string) => {
         $push: { upvotes: userId },
         $pull: { downvotes: userId }, // Optionally remove downvote if exists
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
   }
 
   return result;
 };
-
 
 const addOrRemoveDownvote = async (req: Request, id: string) => {
   const userId = req?.user?._id;
@@ -250,7 +438,7 @@ const addOrRemoveDownvote = async (req: Request, id: string) => {
     result = await Post.findByIdAndUpdate(
       id,
       { $pull: { downvotes: userId } },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
   } else {
     // Add the downvote (push the userId to the downvotes array)
@@ -260,13 +448,12 @@ const addOrRemoveDownvote = async (req: Request, id: string) => {
         $push: { downvotes: userId },
         $pull: { upvotes: userId }, // Optionally remove upvote if exists
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
   }
 
   return result;
 };
-
 
 // Helper function to construct the update query
 const buildUpdateQuery = (payload: Partial<IPost>) => {
@@ -287,10 +474,12 @@ const buildUpdateQuery = (payload: Partial<IPost>) => {
 
 export const PostServices = {
   createPost,
+  userPosts,
+  getAPostInterations,
   getAllPosts,
   getPremiumPosts,
   updateAPost,
   updateAPostContent,
   addOrRemoveUpvote,
-  addOrRemoveDownvote
+  addOrRemoveDownvote,
 };
