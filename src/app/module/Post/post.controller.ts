@@ -122,6 +122,23 @@ const updateAPostContent = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteAPost = catchAsync(async (req: Request, res: Response) => {
+  console.log(req?.body);
+  
+  const result = await PostServices.deleteAPost(
+    req,
+    req?.query?.postId as string,
+    req?.query?.userId as string
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Post deleted successfully!',
+    data: result,
+  });
+});
+
 export const PostControllers = {
   createPost,
   getAllPosts,
@@ -129,6 +146,7 @@ export const PostControllers = {
   getALlPostsOfAUser,
   getPremiumPosts,
   updateAPost,
+  deleteAPost,
   updateAPostContent,
   addOrRemoveUpvote,
   addOrRemoveDownvote

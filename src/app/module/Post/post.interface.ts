@@ -13,7 +13,7 @@ export type TPostCategory =
 // Post structure
 export interface IPost extends Document {
   // id: string;
-  author: ObjectId;
+  author: string | IAuthor;
   title: string;
   content: string; // Could be HTML or Markdown depending on the editor
   category: TPostCategory;
@@ -28,6 +28,15 @@ export interface IPost extends Document {
   comments?: string[];
 }
 
+export interface IAuthor {
+  _id: string;
+  name: string;
+  username: string;
+  email: string;
+  phone?: string;
+  profilePicture?: string;
+  verified: boolean;
+}
 // Post creation interface
 export interface CreatePost {
   author: ObjectId;
@@ -77,5 +86,6 @@ export const TPostUpdateKeys: string[] = [
   'category',
   'tags',
   'images',
+  'video',
   'isDeleted',
 ];

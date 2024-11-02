@@ -30,13 +30,15 @@ const signIn = catchAsync(async (req, res) => {
   res.cookie('refreshToken', refreshToken, {
     secure: isProduction,
     httpOnly: true,
-    sameSite: isProduction ? 'none' :  'lax'
+    sameSite: isProduction ? 'none' :  'lax',
+    // sameSite: 'none'
   });
 
   res.cookie('accessToken', accessToken, {
     secure: isProduction,
     httpOnly: true,
-    sameSite: isProduction ? 'none' :  'lax'
+    sameSite: isProduction ? 'none' :  'lax',
+    // sameSite: 'none'
   });
 
   sendResponse(res, {
@@ -49,7 +51,9 @@ const signIn = catchAsync(async (req, res) => {
 });
 
 const refreshToken = catchAsync(async (req, res) => {
-  const { refreshToken } = req.cookies;
+  const { refreshToken } = req?.cookies;
+  console.log('refreshToken =>', refreshToken);
+  
   const result = await authServices.refreshToken(refreshToken);
 
   sendResponse(res, {

@@ -1,12 +1,12 @@
-import mongoose from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
 import DataNotFoundError from '../../errors/DataNotFoundError';
 import AppError from '../../errors/AppError';
 import httpStatus from 'http-status';
 import { Post } from './post.model';
-import { IPost, TPostKeys, TPostUpdateKeys } from './post.interface';
+import { IAuthor, IPost, TPostKeys, TPostUpdateKeys } from './post.interface';
 import PostsQueryBuilder from '../../builder/PostsQueryBuilder';
 import { postSearchableFields } from './post.constant';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Vote } from '../Vote/vote.model';
 import { VOTE_TYPE } from '../Vote/vote.constant';
 import { Comment } from '../Comment/comment.model';
@@ -231,17 +231,6 @@ const userPosts = async (
   return { posts, totalPosts: totalMatchingDocuments };
 };
 
-// const getCommentsOfAPost = async (req: Request, id: Record<string, unknown>) => {
-//   const post = await Post.findById(id);
-
-//   if (!post || post?.isDeleted || post?.isBlocked) {
-//     throw new DataNotFoundError();
-//   }
-
-//   const comments = await Post.findById(id).select('comments').populate('comments');
-
-//   return { posts, totalPosts: totalMatchingDocuments };
-// };
 
 const getPremiumPosts = async (
   req: Request,
@@ -393,6 +382,49 @@ const updateAPostContent = async (
   return updatedPost;
 };
 
+const deleteAPost = async (
+  req: Request,
+  postId: string,
+  userId: string,
+) => {
+  console.log('line 401 =>',userId);
+  
+  const post = await Post.findById(postId).populate('author');
+  const userEmail = await req?.user?.email;
+  const author = post?.author._id.toString();
+  console.log('line 402 =>', post, userEmail, postId, userId);
+  
+  if (!post) {
+    throw new DataNotFoundError();
+  }
+
+  if(author !== userId) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'You are not authorized to perform this action!',
+    );
+  }
+
+  const deletedPost = await Post.findByIdAndUpdate(
+    postId,
+    { $set: { isDeleted: true } },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!deletedPost) { 
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR, 
+      'Failed to delete the post!',
+    );
+  }
+
+  return deletedPost;
+};
+
+
 const addOrRemoveUpvote = async (req: Request, id: string) => {
   const userId = req?.user?._id;
   const post = await Post.findById(id);
@@ -479,6 +511,7 @@ export const PostServices = {
   getAllPosts,
   getPremiumPosts,
   updateAPost,
+  deleteAPost,
   updateAPostContent,
   addOrRemoveUpvote,
   addOrRemoveDownvote,

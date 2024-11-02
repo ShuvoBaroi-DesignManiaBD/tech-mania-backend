@@ -16,6 +16,12 @@ router.get(
 );
 
 router.get(
+  '/suggested-users',
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER), 
+  UserControllers.getOtherUsers, 
+);
+
+router.get(
   '/user-profile/:id',
   auth(USER_ROLE.ADMIN, USER_ROLE.USER), 
   UserControllers.getAUser, 
@@ -38,6 +44,24 @@ router.patch(
   auth(USER_ROLE?.ADMIN),
   validateRequest(UserValidation.updateUserSchema),
   UserControllers.updateAUser
+);
+
+router.patch(
+  "/follow-user/:id",
+  auth(USER_ROLE?.ADMIN, USER_ROLE.USER),
+  UserControllers.followAUser
+);
+
+router.patch(
+  "/unfollow-user/:id",
+  auth(USER_ROLE?.ADMIN, USER_ROLE.USER),
+  UserControllers.unFollowAUser
+);
+
+router.patch(
+  "/add-follower/:id",
+  auth(USER_ROLE?.ADMIN, USER_ROLE.USER),
+  UserControllers.addFollower
 );
 
 router.patch(

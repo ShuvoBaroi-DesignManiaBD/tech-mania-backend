@@ -43,6 +43,18 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getOtherUsers = catchAsync(async (req: Request, res: Response) => {
+  const {users, totalUsers} = await UserServices.getOtherUsers(req?.query);
+  
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Suggested users retrieved successfully",
+    totalUsers: totalUsers,
+    data: users,
+  });
+});
+
 
 const updateAUser = catchAsync(async (req: Request, res: Response) => {
   const result = await UserServices.updateAUser(req?.params?.id, req?.body);
@@ -66,11 +78,48 @@ const updateUserProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const followAUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserServices.followAUser(req, req?.params?.id);
+
+  sendResponse(res, { 
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User followed successfully",
+    data: result,
+  });
+});
+
+const unFollowAUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserServices.unFollowAUser(req, req?.params?.id);
+
+  sendResponse(res, { 
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User unfollowed successfully",
+    data: result,
+  });
+});
+
+const addFollower = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserServices.followAUser(req, req?.params?.id);
+
+  sendResponse(res, { 
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "A new follower added successfully",
+    data: result,
+  });
+});
+
 
 export const UserControllers = {
   createUser,
   getAUser,
   getAllUsers,
+  getOtherUsers,
   updateAUser,
-  updateUserProfile
+  updateUserProfile,
+  followAUser,
+  unFollowAUser,
+  addFollower
  };

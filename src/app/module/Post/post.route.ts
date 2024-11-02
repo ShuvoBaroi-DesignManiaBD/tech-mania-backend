@@ -69,10 +69,9 @@ router.patch(
 );
 
 router.patch(
-  '/delete-post/:id',
-  auth(USER_ROLE?.USER, USER_ROLE?.ADMIN),
-  validateRequest(PostValidation.postContentUpdateSchema),
-  PostControllers.updateAPostContent,
+  '/delete-post',
+  auth(USER_ROLE?.ADMIN, USER_ROLE?.USER),
+  PostControllers.deleteAPost,
 );
 
 export const postRoutes = router;

@@ -46,7 +46,7 @@ const signIn = async (payload: TSignInData) => {
 };
 
 const refreshToken = async (token: string) => {
-  console.log(token);
+  console.log('token=>', token);
 
   // checking if the given token is valid
   const decoded = verifyToken(token, config.jwt_refresh_key as string);
