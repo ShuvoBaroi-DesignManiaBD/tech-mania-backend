@@ -210,13 +210,16 @@ const userPosts = async (
   let postQuery;
   let totalMatchingDocuments;
   postQuery = new PostsQueryBuilder(
-    Post.find({ author: userId, isDeleted: false }),
+    Post.find({ author: userId, isDeleted: false }).populate(
+      'author',
+      '_id name email profilePicture verified',),
     query,
   )
     .search(postSearchableFields)
     .filter()
     .sort()
-    .fields();
+    .fields()
+    .paginate();
   const posts = await postQuery.modelQuery.exec();
   if (!posts || posts.length < 1) {
     throw new DataNotFoundError();

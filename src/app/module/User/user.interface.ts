@@ -11,6 +11,7 @@ export interface IUser extends Document {
   email: string;
   phone?: string;
   password: string;
+  bio?: string;
   profilePicture?: string;
   verified: boolean;
   isDeleted: boolean;
@@ -27,6 +28,7 @@ export interface IUpdateProfile {
   name?: string;
   password?: string;
   phone?: string;
+  bio?: string;
   profilePicture?: string;
 };
 
@@ -51,6 +53,7 @@ export const TUserKeys: string[] = [
   'email',
   'phone',
   'password',
+  'bio',
   'profilePicture',
   'paymentInfo',
   'role',
@@ -64,6 +67,7 @@ export const TUserKeys: string[] = [
 export const TUserProfileKeys: string[] = [
   'name',
   'phone',
+  'bio',
   'password',
   'profilePicture',
   'paymentInfo',

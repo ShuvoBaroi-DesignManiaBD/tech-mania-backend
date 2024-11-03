@@ -52,7 +52,7 @@ const getAUser = async (req:Request, id: string) => {
   const resultForAdmin = {...user, numberOfPosts:postsByUser};
   if(req?.user?.role === 'admin') return resultForAdmin;
   
-  user = await User.findById(id).select('name email role following followers verified profilePicture');
+  user = await User.findById(id).select('-password -isBlocked -isDeleted -paymentInfo');
   const resultForUser = {...(user as any)?._doc, numberOfPosts:postsByUser};
   return resultForUser;
 };
@@ -153,7 +153,8 @@ const updateAUser = async (id: string, payload: Partial<IUser>) => {
       updateQuery[key] = value;
     }
   }
-
+  console.log('query ===>',updateQuery);
+  
   // Perform the update with $set to modify only the specified fields
   const result = await User.findByIdAndUpdate(
     id,
@@ -207,6 +208,7 @@ const updateAUserProfile = async (id: string, payload: IUpdateProfile) => {
     }
   }
 
+  console.log('query ===>',updateQuery);
   // Perform the update with $set to modify only the specified fields
   const result = await User.findByIdAndUpdate(
     id,
@@ -261,15 +263,36 @@ const followAUser = async (req: Request, id: string) => {
 
 
 const unFollowAUser = async (req: Request, id: string) => {
-  const userId = req?.user?._id;
-  const user = await User.findById(id);
-  if (!user) {
-    throw new DataNotFoundError();
+  const decode = decodeToken(req);
+  const userId = decode?.id;
+  console.log(userId);
+  if (!userId) {
+    throw new Error("User not authenticated");
   }
-  const follow = await User.findByIdAndUpdate({following: {$pull: [id]}}, userId, {
-    new: true,});
-  return follow;
+
+  // Convert both IDs to ObjectId to ensure type consistency
+  const targetUserId = new mongoose.Types.ObjectId(id);
+  const requestingUserId = new mongoose.Types.ObjectId(userId);
+
+  console.log('objectIds ====>',targetUserId, requestingUserId);
+  
+  // Remove the target user from the following list of the requesting user
+  const updatedUser = await User.findByIdAndUpdate(
+    requestingUserId,
+    { $pull: { following: targetUserId } }, // Pull the ObjectId from following array
+    { new: true }
+  );
+
+  // Remove the requesting user from the followers list of the user being unfollowed
+  await User.findByIdAndUpdate(
+    targetUserId,
+    { $pull: { followers: requestingUserId } }, // Pull the ObjectId from followers array
+    { new: true }
+  );
+
+  return updatedUser;
 };
+
 
 const addFollower = async (req: Request, id: string) => {
   const userId = req?.user?._id;
