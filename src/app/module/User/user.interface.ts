@@ -14,6 +14,8 @@ export interface IUser extends Document {
   bio?: string;
   profilePicture?: string;
   verified: boolean;
+  postCredit: number;
+  followCredit: number;
   isDeleted: boolean;
   isBlocked: boolean;
   role: TUserRole;
@@ -31,6 +33,13 @@ export interface IUpdateProfile {
   bio?: string;
   profilePicture?: string;
 };
+
+export interface IRegisterData {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+}
 
 export interface UserModel extends Model<IUser> {
   //instance methods for checking if the user exist

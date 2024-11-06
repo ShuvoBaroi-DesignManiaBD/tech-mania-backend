@@ -10,14 +10,35 @@ import { Request, Response } from 'express';
 import { Vote } from '../Vote/vote.model';
 import { VOTE_TYPE } from '../Vote/vote.constant';
 import { Comment } from '../Comment/comment.model';
+import decodeToken from '../../utils/verifyToken';
+import { User } from '../User/user.model';
 
-const createPost = async (payload: IPost) => {
+const createPost = async (req: Request, payload: IPost) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const createPost = await Post.create([payload], { session });
-    console.log(createPost);
+    const decode = decodeToken(req);
+    const userId = decode?.id;
+    const user = await User.findById(userId).select('verified postCredit');
 
+    let createPost;
+    if (!user) {
+      throw new DataNotFoundError();
+    }
+
+    if (!user.verified && user.postCredit === 0) {
+      throw new AppError(httpStatus.FORBIDDEN, 'No post credit left!');
+    } else if (!user.verified && user.postCredit > 0) {
+      createPost = await Post.create([payload], { session });
+      await User.findByIdAndUpdate(userId, {
+        postCredit: user.postCredit - 1,
+      }).select('verified postCredit');
+      await user.save({ session });
+    } else if (user.verified) {
+      createPost = await Post.create([payload], { session });
+    }
+
+    console.log(createPost);
     await session.commitTransaction();
     await session.endSession();
     return (createPost[0] as any)?._doc; // Return the created post document
@@ -174,10 +195,7 @@ const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
   const postsQuery = Post.aggregate(pipeline);
   const totalMatchingDocuments = await Post.countDocuments(matchCondition);
   if (query) {
-    const filteredData = new PostsQueryBuilder(
-      postsQuery,
-      query,
-    )
+    const filteredData = new PostsQueryBuilder(postsQuery, query)
       .search(postSearchableFields)
       .filter()
       .sort()
@@ -212,7 +230,8 @@ const userPosts = async (
   postQuery = new PostsQueryBuilder(
     Post.find({ author: userId, isDeleted: false }).populate(
       'author',
-      '_id name email profilePicture verified',),
+      '_id name email profilePicture verified',
+    ),
     query,
   )
     .search(postSearchableFields)
@@ -233,7 +252,6 @@ const userPosts = async (
 
   return { posts, totalPosts: totalMatchingDocuments };
 };
-
 
 const getPremiumPosts = async (
   req: Request,
@@ -385,23 +403,19 @@ const updateAPostContent = async (
   return updatedPost;
 };
 
-const deleteAPost = async (
-  req: Request,
-  postId: string,
-  userId: string,
-) => {
-  console.log('line 401 =>',userId);
-  
+const deleteAPost = async (req: Request, postId: string, userId: string) => {
+  console.log('line 401 =>', userId);
+
   const post = await Post.findById(postId).populate('author');
   const userEmail = await req?.user?.email;
   const author = post?.author._id.toString();
   console.log('line 402 =>', post, userEmail, postId, userId);
-  
+
   if (!post) {
     throw new DataNotFoundError();
   }
 
-  if(author !== userId) {
+  if (author !== userId) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
       'You are not authorized to perform this action!',
@@ -417,16 +431,15 @@ const deleteAPost = async (
     },
   );
 
-  if (!deletedPost) { 
+  if (!deletedPost) {
     throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR, 
+      httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to delete the post!',
     );
   }
 
   return deletedPost;
 };
-
 
 const addOrRemoveUpvote = async (req: Request, id: string) => {
   const userId = req?.user?._id;

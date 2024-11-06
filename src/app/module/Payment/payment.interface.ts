@@ -3,11 +3,11 @@ export type TPaymentMethod = 'SSL' | 'STRIPE' | 'PAYPAL';
 
 // Payment structure
 export type TPaymentInfo = {
-  method: TPaymentMethod;
+  method: string;
   subscriptionStatus: 'active' | 'inactive';
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
-  cardInfo: ICardInfo
+  cardInfo?: ICardInfo
 }
 
 // Payment request for premium access
@@ -28,7 +28,7 @@ export type TPaymentResponse = {
 
 // Interface for Payment Info
 export interface IPaymentInfo extends Document {
-  method: TPaymentMethod;
+  method: string;
   subscriptionStatus: 'active' | 'inactive';
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
@@ -36,7 +36,7 @@ export interface IPaymentInfo extends Document {
 }
 
 // Interface for Card Info
-export interface ICardInfo extends Document {
+export interface ICardInfo {
   cardNumber: string;
   expiryDate: string;
   cvv: string;

@@ -67,6 +67,17 @@ const updateAUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const verifyAUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserServices.verifyAUser(req?.params?.id, req?.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User verified successfully",
+    data: result,
+  });
+});
+
 const updateUserProfile = catchAsync(async (req: Request, res: Response) => {
   const result = await UserServices.updateAUserProfile(req?.params?.id, req?.body);
 
@@ -118,6 +129,7 @@ export const UserControllers = {
   getAllUsers,
   getOtherUsers,
   updateAUser,
+  verifyAUser,
   updateUserProfile,
   followAUser,
   unFollowAUser,

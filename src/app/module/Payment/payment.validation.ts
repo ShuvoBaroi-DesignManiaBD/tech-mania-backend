@@ -5,10 +5,14 @@ export const paymentMethodSchema = z.enum(['SSL', 'STRIPE', 'PAYPAL']);
 
 // Payment structure validation
 export const paymentInfoValidationSchema = z.object({
-  method: paymentMethodSchema,
-  subscriptionStatus: z.enum(['active', 'inactive']),
-  subscriptionStartDate: z.date().optional(),
-  subscriptionEndDate: z.date().optional(),
+  body: z.object({
+    paymentInfo: z.object({
+      method: paymentMethodSchema,
+      subscriptionStatus: z.enum(['active', 'inactive']),
+      subscriptionStartDate: z.string().optional(),
+      subscriptionEndDate: z.string().optional(),
+    })
+  })
 });
 
 // Payment request for premium access validation

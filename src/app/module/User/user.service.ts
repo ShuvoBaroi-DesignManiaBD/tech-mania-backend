@@ -8,6 +8,7 @@ import httpStatus from 'http-status';
 import { UserSearchableFields } from './user.constant';
 import UsersQueryBuilder from '../../builder/UsersQueryBuilder';
 import {
+  IRegisterData,
   IUpdateProfile,
   IUser,
   TUserKeys,
@@ -16,12 +17,23 @@ import {
 import { Request } from 'express';
 import { Post } from '../Post/post.model';
 import decodeToken from '../../utils/verifyToken';
+import { IPaymentInfo } from '../Payment/payment.interface';
 
-const createUser = async (payload: IUser) => {
+const createUser = async (payload: IRegisterData) => {
+  console.log(payload);
+
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
     // payload.role = 'user';
+    const user = await User.isUserExistsByEmail(payload.email);
+
+    if (user) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'User with this email already exists !',
+      );
+    }
     const createUser = await User.create(payload);
     await session.commitTransaction();
     await session.endSession();
@@ -34,13 +46,12 @@ const createUser = async (payload: IUser) => {
   }
 };
 
-const getAUser = async (req:Request, id: string) => {
-
+const getAUser = async (req: Request, id: string) => {
   let user = await User.findById(id);
-  let postsByUser = await Post.countDocuments({author: id});
+  let postsByUser = await Post.countDocuments({ author: id, isDeleted: false });
 
   console.log(user);
-  
+
   if (!user || user.isDeleted) {
     throw new DataNotFoundError();
   }
@@ -49,11 +60,13 @@ const getAUser = async (req:Request, id: string) => {
     throw new AppError(httpStatus.FORBIDDEN, 'This user account is blocked !');
   }
 
-  const resultForAdmin = {...user, numberOfPosts:postsByUser};
-  if(req?.user?.role === 'admin') return resultForAdmin;
-  
-  user = await User.findById(id).select('-password -isBlocked -isDeleted -paymentInfo');
-  const resultForUser = {...(user as any)?._doc, numberOfPosts:postsByUser};
+  const resultForAdmin = { ...user, numberOfPosts: postsByUser };
+  if (req?.user?.role === 'admin') return resultForAdmin;
+
+  user = await User.findById(id).select(
+    '-password -isBlocked -isDeleted -paymentInfo',
+  );
+  const resultForUser = { ...(user as any)?._doc, numberOfPosts: postsByUser };
   return resultForUser;
 };
 
@@ -82,16 +95,19 @@ const getAllUsers = async (query: Record<string, unknown>) => {
 };
 
 const getOtherUsers = async (query: Record<string, unknown>) => {
-  console.log("Query parameters:", query);
+  console.log('Query parameters:', query);
 
   // Convert `query.id` to an ObjectId if it's a string
-  const excludeId = typeof query.id === "string" ? new mongoose.Types.ObjectId(query.id) : query.id;
+  const excludeId =
+    typeof query.id === 'string'
+      ? new mongoose.Types.ObjectId(query.id)
+      : query.id;
 
   const { id, ...restQuery } = query;
   // Initialize the query builder with modified _id condition
   const userQuery = new UsersQueryBuilder(
     User.find({ isBlocked: false, isDeleted: false, _id: { $ne: excludeId } }),
-    restQuery
+    restQuery,
   )
     .search()
     .filter()
@@ -153,8 +169,8 @@ const updateAUser = async (id: string, payload: Partial<IUser>) => {
       updateQuery[key] = value;
     }
   }
-  console.log('query ===>',updateQuery);
-  
+  console.log('query ===>', updateQuery);
+
   // Perform the update with $set to modify only the specified fields
   const result = await User.findByIdAndUpdate(
     id,
@@ -173,6 +189,55 @@ const updateAUser = async (id: string, payload: Partial<IUser>) => {
   }
 
   return result;
+};
+
+const verifyAUser = async (id: string, payload: Partial<IUser>) => {
+  console.log('ID:', id);
+  // console.log('Payload:', JSON.stringify(payload, null, 2));
+
+  // Finding the user by ID
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw new DataNotFoundError();
+  }
+
+  const updateQuery: any = {};
+  for (const [key, value] of Object.entries({...payload, verified: true})) {
+    if (typeof value === 'object' && value !== null) {
+      // Handle nested objects like 'address'
+      for (const [nestedKey, nestedValue] of Object.entries(value)) {
+        if (nestedValue !== undefined) {
+          updateQuery[`${key}.${nestedKey}`] = nestedValue;
+        }
+      }
+    } else if (value !== undefined) {
+      // Handle top-level fields
+      updateQuery[key] = value;
+    }
+  }
+  try {
+    console.log(updateQuery);
+    
+    const updateVerificationStatus = await User.findByIdAndUpdate(
+      id,
+      { $set: updateQuery },
+      {
+        new: true,
+        runValidators: true,
+      },
+      // { upsert: true, setDefaultsOnInsert: false },
+    );
+    console.log('Returned =>', updateVerificationStatus);
+
+    return updateVerificationStatus;
+  } catch (error) {
+    console.error('Update Error:', error);
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to update the user!',
+    );
+  }
 };
 
 const updateAUserProfile = async (id: string, payload: IUpdateProfile) => {
@@ -208,7 +273,7 @@ const updateAUserProfile = async (id: string, payload: IUpdateProfile) => {
     }
   }
 
-  console.log('query ===>',updateQuery);
+  console.log('query ===>', updateQuery);
   // Perform the update with $set to modify only the specified fields
   const result = await User.findByIdAndUpdate(
     id,
@@ -233,9 +298,9 @@ const followAUser = async (req: Request, id: string) => {
   const decode = decodeToken(req);
   const userId = decode?.id;
   console.log(userId);
-  
+
   if (!userId) {
-    throw new Error("User not authenticated");
+    throw new Error('User not authenticated');
   }
 
   // Find the user to be followed
@@ -248,51 +313,49 @@ const followAUser = async (req: Request, id: string) => {
   const updatedUser = await User.findByIdAndUpdate(
     userId,
     { $addToSet: { following: id } }, // Use $addToSet to avoid duplicates
-    { new: true }
+    { new: true },
   );
 
   // Update the followers list of the user being followed
   await User.findByIdAndUpdate(
     id,
     { $addToSet: { followers: userId } }, // Use $addToSet to avoid duplicates
-    { new: true }
+    { new: true },
   );
 
   return updatedUser;
 };
-
 
 const unFollowAUser = async (req: Request, id: string) => {
   const decode = decodeToken(req);
   const userId = decode?.id;
   console.log(userId);
   if (!userId) {
-    throw new Error("User not authenticated");
+    throw new Error('User not authenticated');
   }
 
   // Convert both IDs to ObjectId to ensure type consistency
   const targetUserId = new mongoose.Types.ObjectId(id);
   const requestingUserId = new mongoose.Types.ObjectId(userId);
 
-  console.log('objectIds ====>',targetUserId, requestingUserId);
-  
+  console.log('objectIds ====>', targetUserId, requestingUserId);
+
   // Remove the target user from the following list of the requesting user
   const updatedUser = await User.findByIdAndUpdate(
     requestingUserId,
     { $pull: { following: targetUserId } }, // Pull the ObjectId from following array
-    { new: true }
+    { new: true },
   );
 
   // Remove the requesting user from the followers list of the user being unfollowed
   await User.findByIdAndUpdate(
     targetUserId,
     { $pull: { followers: requestingUserId } }, // Pull the ObjectId from followers array
-    { new: true }
+    { new: true },
   );
 
   return updatedUser;
 };
-
 
 const addFollower = async (req: Request, id: string) => {
   const userId = req?.user?._id;
@@ -300,8 +363,13 @@ const addFollower = async (req: Request, id: string) => {
   if (!user) {
     throw new DataNotFoundError();
   }
-  const follower = await User.findByIdAndUpdate({followers: {$push: [id]}}, userId, {
-    new: true,});
+  const follower = await User.findByIdAndUpdate(
+    { followers: { $push: [id] } },
+    userId,
+    {
+      new: true,
+    },
+  );
   return follower;
 };
 
@@ -313,6 +381,7 @@ export const UserServices = {
   updateAUserProfile,
   getOtherUsers,
   followAUser,
+  verifyAUser,
   unFollowAUser,
-  addFollower
+  addFollower,
 };
