@@ -28,6 +28,12 @@ router.get(
 );
 
 router.get(
+  '/:id',
+  auth(USER_ROLE.ADMIN),
+  PostControllers.getAPost,
+);
+
+router.get(
   '/premium-posts',
   auth(USER_ROLE.ADMIN, USER_ROLE.USER),
   PostControllers.getPremiumPosts,

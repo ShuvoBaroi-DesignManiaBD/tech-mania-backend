@@ -1,73 +1,91 @@
-// /* eslint-disable no-unused-vars */
-// /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-// import mongoose from 'mongoose';
-// import Product from '../Product/product.model';
-// import { User } from '../User/user.model';
-// import { Post } from '../Post/post.model';
+import mongoose from 'mongoose';
+import { User } from '../User/user.model';
+import { Post } from '../Post/post.model';
 
-// export const statisticsForAdmin = async () => {
-//     const statistics = await Post.aggregate([
-//         {
-//             // Match only completed orders
-//             $match: {
-//                 premium: 'paid'
-//             }
-//         },
-//         {
-//             // Calculate total revenue
-//             $group: {
-//                 _id: null,
-//                 totalRevenue: { $sum: '$totalPrice' }, // Assuming totalPrice is the field for the order's total cost
-//             }
-//         }
-//     ]);
+export const statisticsForAdmin = async () => {
+    // Total number of active, non-deleted, and non-blocked posts
+    const postCount = await Post.countDocuments({
+        isDeleted: false,
+        isBlocked: false
+    });
 
-//     // Revenue for the last 30 days
-//     const revenueLast30Days = await Order.aggregate([
-//         {
-//             $match: {
-//                 status: 'paid',
-//                 createdAt: {
-//                     $gte: new Date(new Date().setDate(new Date().getDate() - 30)) // Get orders for last 30 days
-//                 }
-//             }
-//         },
-//         {
-//             $group: {
-//                 _id: {
-//                     day: { $dayOfMonth: '$createdAt' },
-//                     month: { $month: '$createdAt' },
-//                     year: { $year: '$createdAt' }
-//                 },
-//                 dailyRevenue: { $sum: '$totalPrice' } // Sum total price per day
-//             }
-//         },
-//         {
-//             // Sort by date
-//             $sort: {
-//                 '_id.year': 1,
-//                 '_id.month': 1,
-//                 '_id.day': 1
-//             }
-//         }
-//     ]);
+    // Total number of active, non-deleted, and non-blocked users
+    const userCount = await User.countDocuments({
+        isDeleted: false,
+        isBlocked: false
+    });
 
-//     // Get the count of products, users, and orders
-//     const productCount = await Product.countDocuments({isDeleted:false});
-//     const userCount = await User.countDocuments({isDeleted:false});
-//     const orderCount = await Order.countDocuments();
+    // Total number of verified users
+    const verifiedUserCount = await User.countDocuments({
+        isDeleted: false,
+        isBlocked: false,
+        verified: true
+    });
 
-//     // Return the full statistics object
-//     return {
-//         productCount,
-//         userCount,
-//         orderCount,
-//         totalRevenue: statistics[0]?.totalRevenue || 0,
-//         dailyRevenue: revenueLast30Days
-//     };
-// };
+    // Total subscription revenue calculation based on active subscriptions
+    const subscriptionRevenueResult = await User.aggregate([
+        {
+            $match: {
+                "paymentInfo.subscriptionStatus": "active",
+                isDeleted: false,
+                isBlocked: false,
+                verified: true
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                activeSubscriptionCount: { $sum: 1 } // Count each active subscription
+            }
+        },
+        {
+            $project: {
+                totalSubscriptionRevenue: { $multiply: ['$activeSubscriptionCount', 20] } // Multiply count by $20 per subscription
+            }
+        }
+    ]);
+    const totalSubscriptionRevenue = subscriptionRevenueResult[0]?.totalSubscriptionRevenue || 0;
 
-// export const StatisticsServices = {
-//   statisticsForAdmin,
-// }
+    // Revenue for the last 30 days (based on completed payments)
+    const revenueLast30Days = await User.aggregate([
+        {
+            $match: {
+                "paymentInfo.subscriptionStatus": "active", // Ensure this matches the status for completed payments
+                createdAt: { $gte: new Date(new Date().setDate(new Date().getDate() - 30)) }
+            }
+        },
+        {
+            $group: {
+                _id: {
+                    day: { $dayOfMonth: '$createdAt' },
+                    month: { $month: '$createdAt' },
+                    year: { $year: '$createdAt' }
+                },
+                dailyRevenue: { $sum: 20 } // Assume $20 revenue per day per subscription
+            }
+        },
+        {
+            $sort: {
+                '_id.year': 1,
+                '_id.month': 1,
+                '_id.day': 1
+            }
+        }
+    ]);
+
+    // Return the statistics object
+    return {
+        postCount,
+        userCount,
+        verifiedUserCount,
+        totalSubscriptionRevenue,
+        dailyRevenue: revenueLast30Days
+    };
+};
+
+export const StatisticsServices = {
+    statisticsForAdmin,
+};

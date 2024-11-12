@@ -41,7 +41,7 @@ const createPost = async (req: Request, payload: IPost) => {
     console.log(createPost);
     await session.commitTransaction();
     await session.endSession();
-    return (createPost[0] as any)?._doc; // Return the created post document
+    return ((createPost as IPost[])[0] as any)?._doc; // Return the created post document
   } catch (error: any) {
     await session.abortTransaction();
     await session.endSession();
@@ -96,8 +96,12 @@ const createPost = async (req: Request, payload: IPost) => {
 // };
 
 const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
+  const decode = decodeToken(req);
+  const {role} = decode as any;
+  console.log('role:', role);
+  
   let matchCondition = {};
-  if (req?.user?.role !== 'admin') {
+  if (role !== 'admin') {
     matchCondition = {
       isDeleted: false,
       isBlocked: false,
@@ -206,8 +210,8 @@ const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
     if (!posts || posts.length < 1) {
       throw new DataNotFoundError();
     }
-    const totalMatchingDocuments = posts.length;
-    return { posts, totalPosts: totalMatchingDocuments };
+    const totalMatched = role === 'admin' ? totalMatchingDocuments : posts.length;
+    return { posts, totalPosts: totalMatched };
   }
 
   const posts = await postsQuery.exec();
@@ -218,6 +222,18 @@ const getAllPosts = async (req: Request, query: Record<string, unknown>) => {
 
   return { posts, totalPosts: totalMatchingDocuments };
 };
+
+const getAPost = async (req: Request, id: string) => {
+  const post = await Post.findById(id).populate(
+    'author',
+    '_id name email profilePicture verified',
+  )
+
+  if (!post) {
+    throw new DataNotFoundError();
+  }
+  return post;
+}
 
 const userPosts = async (
   req: Request,
@@ -275,7 +291,7 @@ const getPremiumPosts = async (
     throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a verified user!');
   }
 
-  const countQuery = postQuery.modelQuery.clone();
+  const countQuery = (postQuery as any).modelQuery?.clone();
   const totalMatchingDocuments = await countQuery.countDocuments().exec();
 
   postQuery.paginate();
@@ -405,17 +421,18 @@ const updateAPostContent = async (
 
 const deleteAPost = async (req: Request, postId: string, userId: string) => {
   console.log('line 401 =>', userId);
-
+  const decode = decodeToken(req);
+  const {id,role} = decode as any;
   const post = await Post.findById(postId).populate('author');
   const userEmail = await req?.user?.email;
-  const author = post?.author._id.toString();
+  const author = (post as any)?.author._id.toString();
   console.log('line 402 =>', post, userEmail, postId, userId);
 
   if (!post) {
     throw new DataNotFoundError();
   }
 
-  if (author !== userId) {
+  if (author !== id && role !== 'admin') {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
       'You are not authorized to perform this action!',
@@ -523,6 +540,7 @@ const buildUpdateQuery = (payload: Partial<IPost>) => {
 export const PostServices = {
   createPost,
   userPosts,
+  getAPost,
   getAPostInterations,
   getAllPosts,
   getPremiumPosts,

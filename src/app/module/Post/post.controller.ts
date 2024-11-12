@@ -7,7 +7,7 @@ import { PostServices } from './post.service';
 // Below you can see the application of catchAsync function.
 const createPost = catchAsync(async (req: Request, res: Response) => {
   // Below is the sample code to show you how to call the service function and pass parameter to it.
-  const result = await PostServices.createPost(req.body);
+  const result = await PostServices.createPost(req, req.body);
 
   // Below you can see the use of custom sendResponse function to make the code base clean.
   sendResponse(res, {
@@ -27,6 +27,17 @@ const getAllPosts = catchAsync(async (req: Request, res: Response) => {
     message: 'All posts retrieved successfully',
     totalPosts: totalPosts,
     data: posts,
+  });
+});
+
+const getAPost = catchAsync(async (req: Request, res: Response) => {
+  const post = await PostServices.getAPost(req, req?.params?.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'The Post retrieved successfully',
+    data: post,
   });
 });
 
@@ -142,6 +153,7 @@ const deleteAPost = catchAsync(async (req: Request, res: Response) => {
 export const PostControllers = {
   createPost,
   getAllPosts,
+  getAPost,
   getAPostInteractions,
   getALlPostsOfAUser,
   getPremiumPosts,
